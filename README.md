@@ -1,7 +1,7 @@
 # nload
 **Real time network traffic monitor for the text console**
 
-![](http://www.roland-riegel.de/nload/screenshots/shot1.png)
+![nload-1](https://github.com/user-attachments/assets/34c8cb5b-bbd0-44cd-b79a-96c6164851c8)
 
 ## Introduction
 
