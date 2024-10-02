@@ -30,6 +30,8 @@
 #include <algorithm>
 #include <iomanip>
 #include <sstream>
+#include <map>      // 新增的头文件
+#include <string>   // 新增的头文件
 
 using namespace std;
 
@@ -93,7 +95,7 @@ void DeviceView::print(Window& window)
         window.print() << "Please enlarge console for viewing device information." << endl;
         return;
     }
-    
+
     // format statistics
     vector<string> statLinesIn;
     vector<string> statLinesOut;
@@ -110,12 +112,12 @@ void DeviceView::print(Window& window)
     {
         window.print() << "Incoming:";
         window.print(width / 2) << "Outgoing:" << endl;
-        
+
         int statusY = window.getY();
-        
+
         printStatistics(window, statLinesIn, 0, statusY);
         printStatistics(window, statLinesOut, width / 2, statusY);
-        
+
         window.print() << endl;
     }
     // ... or not
@@ -128,8 +130,15 @@ void DeviceView::print(Window& window)
         int dirInY = window.getY();
         int dirOutY = dirInY + linesForIn;
 
-        int statisticsX = width - statLineMaxLength - 1;
-        statisticsX -= statisticsX % 5;
+//        int statisticsX = width - statLineMaxLength - 1;
+//        statisticsX -= statisticsX % 5;
+//
+        // 计算统计信息区域的起始 X 坐标
+int statisticsX = width * 0.7; // 统计信息区域占用屏幕宽度的40%
+if (statisticsX + statLineMaxLength >= width)
+{
+    statisticsX = width - statLineMaxLength - 1;
+}
 
         if(linesForOut <= 5)
         {
@@ -150,7 +159,8 @@ void DeviceView::print(Window& window)
         // print incoming data
         if(linesForIn > 5)
         {
-            window.print(0, dirInY) << "Incoming (100% @ " << formatTrafficValue(maxDeflectionIn, 0) << "):" << endl;
+//            window.print(0, dirInY) << "Incoming (100% @ " << formatTrafficValue(maxDeflectionIn, 0) << "):" << endl;
+            window.print(0, dirInY) << "Incoming (100% @ " << formatTrafficValue(maxDeflectionIn) << "):" << endl;
 
             if(statisticsX > 1)
             {
@@ -168,8 +178,8 @@ void DeviceView::print(Window& window)
         // print outgoing data
         if(linesForOut > 5)
         {
-            window.print(0, dirOutY) << "Outgoing (100% @ " << formatTrafficValue(maxDeflectionOut, 0) << "):" << endl;
-
+  //          window.print(0, dirOutY) << "Outgoing (100% @ " << formatTrafficValue(maxDeflectionOut, 0) << "):" << endl;
+window.print(0, dirOutY) << "Outgoing (100% @ " << formatTrafficValue(maxDeflectionOut) << "):" << endl;
             if(statisticsX > 1)
             {
                 m_deviceGraphOut.setNumOfBars(statisticsX - 1);
@@ -210,18 +220,49 @@ unsigned long long DeviceView::roundUpMaxDeflection(unsigned long long value)
     return rounded;
 }
 
-string DeviceView::formatTrafficValue(unsigned long value, int precision)
+
+string DeviceView::formatTrafficValue(unsigned long value)
 {
-    Statistics::dataUnit trafficFormat = (Statistics::dataUnit) ((int) SettingStore::get("TrafficFormat"));
+    // 将字节数转换为比特数
+    unsigned long long bitValue = static_cast<unsigned long long>(value) * 8;
 
-    string unitString = Statistics::getUnitString(trafficFormat, value);
-    float unitFactor = Statistics::getUnitFactor(trafficFormat, value);
+    // 将比特数转换为兆比特每秒（Mb/s）
+    unsigned long long megabitValue = bitValue / 1000000; // 使用十进制的 1,000,000
 
-    ostringstream oss;
-    oss << fixed << setprecision(precision) << ((float) value / unitFactor) << " " << unitString << "/s";
+    // 将兆比特数转换为字符串
+    stringstream ss;
+    ss << megabitValue;
 
-    return oss.str();
+    return ss.str();
 }
+
+
+void DeviceView::generateStatisticsIn(vector<string>& statisticLines)
+{
+    const Statistics& statistics = m_device->getStatistics();
+
+    statisticLines.push_back("Cur: " + formatTrafficValue(statistics.getDataInPerSecond()));
+    // 如果需要，可以删除或注释掉其他统计数据行
+    statisticLines.push_back("Avg: " + formatTrafficValue(statistics.getDataInAverage())+ " Mb/s" ) ;
+    statisticLines.push_back("Min: " + formatTrafficValue(statistics.getDataInMin())+ " Mb/s");
+    statisticLines.push_back("Max: " + formatTrafficValue(statistics.getDataInMax())+ " Mb/s");
+    statisticLines.push_back("Ttl: " + formatDataValue(statistics.getDataInTotal(),2));
+
+}
+
+void DeviceView::generateStatisticsOut(vector<string>& statisticLines)
+{
+    const Statistics& statistics = m_device->getStatistics();
+
+    statisticLines.push_back("Cur: " + formatTrafficValue(statistics.getDataOutPerSecond())+ " Mb/s");
+    statisticLines.push_back("Avg: " + formatTrafficValue(statistics.getDataOutAverage())+ " Mb/s");
+    statisticLines.push_back("Min: " + formatTrafficValue(statistics.getDataOutMin())+ " Mb/s");
+    statisticLines.push_back("Max: " + formatTrafficValue(statistics.getDataOutMax())+ " Mb/s");
+    statisticLines.push_back("Ttl: " + formatDataValue(statistics.getDataOutTotal(),2));
+
+}
+
+
 
 string DeviceView::formatDataValue(unsigned long long value, int precision)
 {
@@ -236,33 +277,269 @@ string DeviceView::formatDataValue(unsigned long long value, int precision)
     return oss.str();
 }
 
-void DeviceView::generateStatisticsIn(vector<string>& statisticLines)
-{
-    const Statistics& statistics = m_device->getStatistics();
-
-    statisticLines.push_back("Cur: " + formatTrafficValue(statistics.getDataInPerSecond(), 2));
-    statisticLines.push_back("Avg: " + formatTrafficValue(statistics.getDataInAverage(), 2));
-    statisticLines.push_back("Min: " + formatTrafficValue(statistics.getDataInMin(), 2));
-    statisticLines.push_back("Max: " + formatTrafficValue(statistics.getDataInMax(), 2));
-    statisticLines.push_back("Ttl: " + formatDataValue(statistics.getDataInTotal(), 2));
-}
-
-void DeviceView::generateStatisticsOut(vector<string>& statisticLines)
-{
-    const Statistics& statistics = m_device->getStatistics();
-
-    statisticLines.push_back("Cur: " + formatTrafficValue(statistics.getDataOutPerSecond(), 2));
-    statisticLines.push_back("Avg: " + formatTrafficValue(statistics.getDataOutAverage(), 2));
-    statisticLines.push_back("Min: " + formatTrafficValue(statistics.getDataOutMin(), 2));
-    statisticLines.push_back("Max: " + formatTrafficValue(statistics.getDataOutMax(), 2));
-    statisticLines.push_back("Ttl: " + formatDataValue(statistics.getDataOutTotal(), 2));
-}
 
 void DeviceView::printStatistics(Window& window, const vector<string>& statisticLines, int x, int y)
 {
-    for(vector<string>::const_iterator itLine = statisticLines.begin(); itLine != statisticLines.end(); ++itLine)
+    for (vector<string>::const_iterator itLine = statisticLines.begin(); itLine != statisticLines.end(); ++itLine)
     {
-        window.print(x, y++) << *itLine;
+        if (itLine->substr(0, 4) == "Cur:")
+        {
+            // 这是 "Cur" 行，提取数值并以大号字体打印
+            std::string curLine = *itLine;
+            // 提取 "Cur: " 后的数值部分
+            std::string curValue = curLine.substr(5); // 跳过 "Cur: "
+
+            // 只保留前4位数字
+            if (curValue.length() > 4)
+            {
+                curValue = curValue.substr(0, 4);
+            }
+
+            // 将数字向上移动2行
+            int adjustedY = y - 6;
+            if (adjustedY < 0)
+                adjustedY = 0;
+
+            // 打印大号字体的数值
+            printLargeNumber(window, x, adjustedY, curValue);
+
+            // 更新 y 坐标，确保后续内容不被覆盖
+            y = adjustedY + 7; // 大号字体占用了7行
+        }
+        else
+        {
+            // 正常打印
+            window.print(x, y++) << *itLine;
+        }
     }
 }
 
+
+// 添加新的函数，用于打印大号字体的数值
+void DeviceView::printLargeNumber(Window& window, int x, int y, const std::string& value)
+{
+    // 定义数字和字符的 ASCII 艺术表示
+    static const char* largeChars[][7] = {
+        // '0'
+        {
+            "  ___  ",
+            " / _ \\ ",
+            "| | | |",
+            "| | | |",
+            "| |_| |",
+            " \\___/ ",
+            "       "
+        },
+        // '1'
+        {
+            " __    ",
+            "/_ |   ",
+            " | |   ",
+            " | |   ",
+            " | |   ",
+            " |_|   ",
+            "       "
+        },
+        // '2'
+        {
+            "  ___  ",
+            " |__ \\ ",
+            "    ) |",
+            "   / / ",
+            "  / /_ ",
+            " |____|",
+            "       "
+        },
+        // '3'
+        {
+            "  ____ ",
+            " |___ \\",
+            "   __) |",
+            "  |__ < ",
+            "  ___) |",
+            " |____/ ",
+            "        "
+        },
+        // '4'
+        {
+            "  _  _   ",
+            " | || |  ",
+            " | || |_ ",
+            " |__   _|",
+            "    | |  ",
+            "    |_|  ",
+            "         "
+        },
+        // '5'
+        {
+            "  _____ ",
+            " | ____|",
+            " | |__  ",
+            " |___ \\ ",
+            "  ___) |",
+            " |____/ ",
+            "        "
+        },
+        // '6'
+        {
+            "   __   ",
+            "  / /   ",
+            " / /_   ",
+            " | '_ \\ ",
+            " | (_) |",
+            "  \\___/ ",
+            "        "
+        },
+        // '7'
+        {
+            "  ______",
+            " |____  |",
+            "     / / ",
+            "    / /  ",
+            "   / /   ",
+            "  /_/    ",
+            "         "
+        },
+        // '8'
+        {
+            "   ___  ",
+            "  / _ \\ ",
+            " | (_) |",
+            "  > _ < ",
+            " | (_) |",
+            "  \\___/ ",
+            "        "
+        },
+        // '9'
+        {
+            "   ___  ",
+            "  / _ \\ ",
+            " | (_) |",
+            "  \\__, |",
+            "    / / ",
+            "   /_/  ",
+            "        "
+        },
+        // '.'
+        {
+            "       ",
+            "       ",
+            "       ",
+            "       ",
+            "  ___  ",
+            " (___) ",
+            "       "
+        },
+        // 'K'
+        {
+            "  _  __",
+            " | |/ /",
+            " | ' / ",
+            " |  <  ",
+            " | . \\ ",
+            " |_|\\_\\",
+            "       "
+        },
+        // 'M'
+        {
+            "  __  __ ",
+            " |  \\/  |",
+            " | \\  / |",
+            " | |\\/| |",
+            " | |  | |",
+            " |_|  |_|",
+            "         "
+        },
+        // 'G'
+        {
+            "  ____ ",
+            " / ___|",
+            "| |  _ ",
+            "| |_| |",
+            " \\____|",
+            "       ",
+            "       "
+        },
+        // 'b'
+        {
+            " _     ",
+            "| |    ",
+            "| |__  ",
+            "| '_ \\ ",
+            "| |_) |",
+            "|_.__/ ",
+            "       "
+        },
+        // 'i'
+        {
+            " _ ",
+            "(_)",
+            " | ",
+            " | ",
+            " | ",
+            " |_|",
+            "    "
+        },
+        // 't'
+        {
+            "  _   ",
+            " | |  ",
+            " | |_ ",
+            " | __|",
+            " | |_ ",
+            "  \\__|",
+            "      "
+        },
+        // '/'
+        {
+            "     __",
+            "    / /",
+            "   / / ",
+            "  / /  ",
+            " / /   ",
+            "/_/    ",
+            "       "
+        },
+        // 's'
+        {
+            "  ____ ",
+            " / ___|",
+            " \\___ \\",
+            "  ___) |",
+            " |____/ ",
+            "        ",
+            "        "
+        }
+    };
+
+    // 映射字符到索引
+    std::map<char, int> charMap = {
+        {'0', 0}, {'1', 1}, {'2', 2}, {'3', 3}, {'4', 4},
+        {'5', 5}, {'6', 6}, {'7', 7}, {'8', 8}, {'9', 9},
+        {'.', 10}, {'K', 11}, {'M', 12}, {'G', 13}, {'b', 14},
+        {'i', 15}, {'t', 16}, {'/', 17}, {'s', 18}
+    };
+
+    // 对于 ASCII 艺术字体的每一行
+    for (int i = 0; i < 7; ++i)
+    {
+        int xPos = x;
+        for (size_t j = 0; j < value.length(); ++j)
+        {
+            char c = value[j];
+            const char* line;
+            if (charMap.find(c) != charMap.end())
+            {
+                int idx = charMap[c];
+                line = largeChars[idx][i];
+            }
+            else
+            {
+                // 未定义的字符，用空格替代
+                line = "       ";
+            }
+            window.print(xPos, y + i) << line;
+            xPos += 8; // 每个字符宽度为7，加1个空格
+        }
+    }
+}
