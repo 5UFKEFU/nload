@@ -1,9 +1,12 @@
 # nload
 **Real time network traffic monitor for the text console**
 
-![](http://www.roland-riegel.de/nload/screenshots/shot1.png)
+
+![nload-1](https://github.com/user-attachments/assets/a1fcb4cb-d220-4d65-b905-67939a337940)
 
 ## Introduction
+2024.10.2 JEFF
+Add BIG font for Current Speed.
 
 nload is a console application which monitors network traffic and bandwidth
 usage in real time. It visualizes the in- and outgoing traffic using two
@@ -37,7 +40,7 @@ at <feedback@roland-riegel.de>.
 
 ## Copyright / License
 
-Copyright (C) 2001 - 2018 by Roland Riegel (<feedback@roland-riegel.de>)
+Copyright (C) 2001 - 2024 by Roland Riegel (<feedback@roland-riegel.de>)
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
