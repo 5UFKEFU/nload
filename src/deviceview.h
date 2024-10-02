@@ -23,12 +23,14 @@
 
 #include "dataframe.h"
 #include "graph.h"
+#include "window.h"       // 确保包含 Window 类的头文件
 
 #include <string>
 #include <vector>
+#include <map>            // 添加 map 头文件
+#include <string>         // 确保包含 string 头文件
 
 class Device;
-class Window;
 
 class DeviceView
 {
@@ -41,24 +43,27 @@ class DeviceView
 
         void setDeviceNumber(int deviceNumber);
         void setTotalNumberOfDevices(int totalNumberOfDevices);
-        
+
     private:
         unsigned long long roundUpMaxDeflection(unsigned long long value);
+            // 修改函数签名
+    std::string formatTrafficValue(unsigned long value);
 
-        std::string formatTrafficValue(unsigned long value, int precision);
-        std::string formatDataValue(unsigned long long value, int precision);
-        void generateStatisticsIn(std::vector<std::string>& statisticLines);
-        void generateStatisticsOut(std::vector<std::string>& statisticLines);
-        void printStatistics(Window& window, const std::vector<std::string>& statisticLines, int x, int y);
+    std::string formatDataValue(unsigned long long value, int precision);
+    void generateStatisticsIn(std::vector<std::string>& statisticLines);
+    void generateStatisticsOut(std::vector<std::string>& statisticLines);
+    void printStatistics(Window& window, const std::vector<std::string>& statisticLines, int x, int y);
+
+        // 添加新的函数声明
+        void printLargeNumber(Window& window, int x, int y, const std::string& value);
 
         int m_deviceNumber;
         int m_totalNumberOfDevices;
-        
+
         Graph m_deviceGraphIn;
         Graph m_deviceGraphOut;
 
         Device* m_device;
 };
 
-#endif
-
+#endif // DEVICEVIEW_H
